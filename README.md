@@ -19,7 +19,7 @@ This application uses the included data directory as the default for reading and
 The application uses the -v flag to turn on verbose mode, the -x flag to converts XPT files, and the -b flag to convert
 SAS datasets. Set either the -x or -b flag, but not both.
 
-The directories default to the data directory that's part of this repo if alterative are not specified on the 
+The directories default to the data directory that's part of this repo if alternatives are not specified on the 
 command-line.
 
 optional arguments:
@@ -35,6 +35,16 @@ optional arguments:
 | -b | --sas | Boolean that indicates SAS dataset files should be converted |
 
 ### Command-line Examples
+
+The following example uses all defaults except it toggle verbose mode on (recommended when first
+trying out the application). 
+```
+python dsjconvert.py -v
+```
+
+You may also run the program with all defaults and not include any command-line parameters. In this case the program
+runs quietly, uses the ./data directory for all dataset inputs and outputs, and converts XPT files. The default settings
+were created to make it easy to try out the program during the pilot.
 
 The following example uses the default data directory for the dataset inputs and Dataset-JSON outputs. The -x flag
 indicates that we're converting XPT file and the -v flag toggles verbose mode on.
