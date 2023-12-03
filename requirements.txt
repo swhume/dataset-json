@@ -1,0 +1,4 @@
+pandas~=2.1.3
+pyreadstat~=1.2.5
+saxonche~=12.4.1.0
+jsonschema~=4.20.0
