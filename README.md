@@ -2,14 +2,9 @@
 
 ### Introduction
 
-This dsjconvert.py program is a modification of Pierre Dostie's 
-[Dataset-JSON-Python](https://github.com/dostiep/Dataset-JSON-Python) application. It transforms the
-application into a CLI with a verbose mode to make the application's settings and behaviors more
-transparent to aid in debugging. If these features are found useful I may suggest additions to the
-original application. The features were added to help debug cases where pilot participants encountered errors
-running the original application, possibly due to how the application was set up locally.
-
-This application creates Dataset-JSON files from SAS7BDAT or XPT datasets.
+Dsjconvert.py program transforms SAS V5 XPORT (XPT), SAS7BDAT, CSV, Pandas, and Parquet datasets into the Dataset-JSON 
+format for data exchange. Dsjconvert.py is a CLI with a verbose mode to make the applications settings and behaviors
+transparent to support testing and debugging.
 
 This application requires a Define-XML file to provide the metadata needed for the conversion.
 
@@ -38,7 +33,7 @@ optional arguments:
 
 The following example uses all defaults except it toggle verbose mode on (recommended when first
 trying out the application). 
-```
+```f
 python dsjconvert.py -v
 ```
 
