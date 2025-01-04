@@ -23,8 +23,8 @@
 	<xsl:variable name="metaDataVersionOID" select="normalize-space($root/odm:Study/odm:MetaDataVersion/@OID)"/> 
 	<xsl:variable name="originator" select="normalize-space($root/@Originator)"/> 
 	<xsl:text>{</xsl:text>
-	<xsl:text>&quot;creationDateTime&quot;: &quot;</xsl:text> <xsl:value-of select="$creationDateTime"/> <xsl:text>&quot;, </xsl:text>
-	<xsl:text>&quot;datasetJSONVersion&quot;: &quot;1.0.0&quot;, </xsl:text> 
+	<xsl:text>&quot;datasetJSONCreationDateTime&quot;: &quot;</xsl:text> <xsl:value-of select="$creationDateTime"/> <xsl:text>&quot;, </xsl:text>
+	<xsl:text>&quot;datasetJSONVersion&quot;: &quot;1.1.0&quot;, </xsl:text>
 	<xsl:if test="$fileOID">
 		<xsl:text>&quot;fileOID&quot;: &quot;</xsl:text> 
 		<xsl:value-of select="$fileOID"/> 
@@ -38,17 +38,17 @@
     <xsl:for-each select="$root/odm:Study/odm:MetaDataVersion/odm:ItemGroupDef[upper-case(@Name)=upper-case($dsName)]">
         <xsl:variable name="OID" select="@OID"/>
         <xsl:variable name="Name" select="@Name"/>
-        <xsl:variable name="Data" select="if (@IsReferenceData = 'No') then 'clinicalData' else if (@IsReferenceData = 'Yes') then 'referenceData' else ' '"/>
+        <!-- <xsl:variable name="Data" select="if (@IsReferenceData = 'No') then 'clinicalData' else if (@IsReferenceData = 'Yes') then 'referenceData' else ' '"/> -->
         <xsl:variable name="Label" select="odm:Description/odm:TranslatedText"/>
-		<xsl:text>&quot;</xsl:text> <xsl:value-of select="$Data"/> <xsl:text>&quot;: {</xsl:text> 
+		<!-- <xsl:text>&quot;</xsl:text> <xsl:value-of select="$Data"/> <xsl:text>&quot;: {</xsl:text> -->
 		<xsl:text>&quot;studyOID&quot;: &quot;</xsl:text> <xsl:value-of select="$studyOID"/> <xsl:text>&quot;, </xsl:text> 
 		<xsl:text>&quot;metaDataVersionOID&quot;: &quot;</xsl:text> <xsl:value-of select="$metaDataVersionOID"/> <xsl:text>&quot;, </xsl:text> 
-		<xsl:text>&quot;itemGroupData&quot;: {</xsl:text>
-		<xsl:text>&quot;</xsl:text> <xsl:value-of select="$Name"/> <xsl:text>&quot;: {</xsl:text> 
+		<xsl:text>"itemGroupOID": "{</xsl:text> <xsl:value-of select="$Name"/> <xsl:text>&quot;, </xsl:text>
+		<!-- <xsl:text>&quot;</xsl:text> <xsl:value-of select="$Name"/> <xsl:text>&quot;: {</xsl:text> -->
 		<xsl:text>&quot;records&quot;: </xsl:text> <xsl:value-of select="$nbRows"/> <xsl:text>, </xsl:text> 
-		<xsl:text>&quot;name&quot;: &quot;</xsl:text> <xsl:value-of select="$Name"/> <xsl:text>&quot;, </xsl:text> 
+		<xsl:text>"name": &quot;</xsl:text> <xsl:value-of select="$Name"/> <xsl:text>&quot;, </xsl:text>
 		<xsl:text>&quot;label&quot;: &quot;</xsl:text> <xsl:value-of select="$Label"/> <xsl:text>&quot;, </xsl:text> 
-		<xsl:text>&quot;items&quot;: [{&quot;OID&quot;: &quot;ITEMGROUPDATASEQ&quot;, &quot;name&quot;: &quot;ITEMGROUPDATASEQ&quot;,	&quot;label&quot;: &quot;Record identifier&quot;, &quot;type&quot;: &quot;integer&quot;}, </xsl:text>
+		<xsl:text>&quot;columns&quot;: [</xsl:text>
 		<xsl:for-each select="odm:ItemRef">
 			<xsl:variable name="ItemOID" select="@ItemOID"/>
 			<xsl:variable name="OID" select="normalize-space($root/odm:Study/odm:MetaDataVersion/odm:ItemDef[@OID=$ItemOID]/@OID)"/>
@@ -59,10 +59,10 @@
 			<xsl:variable name="DisplayFormat" select="normalize-space($root/odm:Study/odm:MetaDataVersion/odm:ItemDef[@OID=$ItemOID]/@def:DisplayFormat)"/>
 			<xsl:variable name="KeySequence" select="@KeySequence"/>
 			<xsl:text>{</xsl:text> 
-			<xsl:text>&quot;OID&quot;: &quot;</xsl:text> <xsl:value-of select="$OID"/> <xsl:text>&quot;, </xsl:text>
+			<xsl:text>&quot;itemOID&quot;: &quot;</xsl:text> <xsl:value-of select="$OID"/> <xsl:text>&quot;, </xsl:text>
 			<xsl:text>&quot;name&quot;: &quot;</xsl:text> <xsl:value-of select="$Name"/> <xsl:text>&quot;, </xsl:text>
 			<xsl:text>&quot;label&quot;: &quot;</xsl:text> <xsl:value-of select="$Label"/> <xsl:text>&quot;, </xsl:text>
-			<xsl:text>&quot;type&quot;: &quot;</xsl:text> 
+			<xsl:text>&quot;dataType&quot;: &quot;</xsl:text>
 				<xsl:choose>
 					<xsl:when test="$DataType = 'text' or $DataType = 'datetime' or $DataType = 'date' or $DataType = 'time' or $DataType = 'partialDate' or $DataType = 'partialTime' or
 					                $DataType = 'partialDatetime' or $DataType = 'incompleteDatetime' or $DataType = 'durationDatetime'">
@@ -72,7 +72,7 @@
 						<xsl:text>integer</xsl:text>
 					</xsl:when>
 					<xsl:when test="$DataType = 'float'">
-						<xsl:text>float</xsl:text>
+						<xsl:text>double</xsl:text>
 					</xsl:when>
 					<xsl:otherwise>
 						<xsl:text></xsl:text>
@@ -100,8 +100,8 @@
 			</xsl:if>
 		</xsl:for-each>
     </xsl:for-each>
-	<xsl:text>&quot;itemData&quot;: [</xsl:text> 
-	<xsl:text>]}}}}</xsl:text>
+	<xsl:text>&quot;rows": [</xsl:text>
+	<xsl:text>]}</xsl:text>
 </xsl:template> 
 	
 </xsl:stylesheet>

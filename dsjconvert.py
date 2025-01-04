@@ -85,29 +85,27 @@ def convert_dataset(args, base_path, file, schema):
     dsname = file.upper().rsplit('.', 1)[0]
     json_data = read_define_file(args, dsname, base_path, meta)
 
-    if "clinicalData" in json_data:
-        data_key = "clinicalData"
-    elif "referenceData" in json_data:
-        data_key = "referenceData"
+    columns = json_data["columns"]
+    rows = json_data
 
-    items = json_data[data_key]["itemGroupData"][dsname]["items"]
-
-    pairs = {item["name"]: item["type"] for item in items if item["name"] != "ITEMGROUPDATASEQ"}
+    pairs = {column["name"]: column["dataType"] for column in columns}
 
     if sorted([col.upper() for col in df.columns.tolist()]) == sorted(
-            [item["name"].upper() for item in items if item["name"] != "ITEMGROUPDATASEQ"]):
+            [column["name"].upper() for column in columns]):
 
         # Extract Dataset-JSON data from each SAS or XPT datasets
         records = ''
         if meta.number_rows > 0:
             for index, row in df.iterrows():
-                if index > 0:
+                if index:
                     records += ','
-                records += '[' + str(index + 1)
-                for column in df.columns:
+                # records += '[' + str(index + 1)
+                records += '['
+                for col_nbr, column in enumerate(df.columns):
                     type = pairs[column]
                     value = row[column]
-                    records += ','
+                    if col_nbr:
+                        records += ','
                     if isinstance(value, (datetime.date, datetime.datetime, datetime.time)):
                         records += str(datetime_to_integer(value))
                     elif type == "string":
@@ -128,14 +126,16 @@ def convert_dataset(args, base_path, file, schema):
                             records += json.dumps(value)
                 records += ']'
 
-        json_data[data_key]["itemGroupData"][dsname]["itemData"] = json.loads("[" + records + "]")
+        json_data["rows"] = json.loads("[" + records + "]")
 
         # Check if JSON file is valid against the Dataset-JSON schema
         error = False
         try:
             jsonschema.validate(json_data, schema)
-        except:
+        except jsonschema.exceptions.ValidationError as ex:
             error = True
+            if args.verbose:
+                print(f"Validation errors: {ex}")
 
         # Save Dataset-JSON files
         if not error:
@@ -193,7 +193,6 @@ def main():
         else:
             print("converting SAS datasets...")
 
-    # TODO cmd-line args have default values set to aid in development and testing - keep defaults?
     if any((args.define_file == "", args.sas_path == "", args.dsj_path == "")):
         raise Exception("Please use the required command-line arguments")
 
