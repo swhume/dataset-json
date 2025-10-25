@@ -11,6 +11,7 @@ import logging
 import datetime
 import xml.etree.ElementTree as ET
 from typing import Dict, List, Optional
+import re
 
 from .exceptions import DefineXMLNotFoundError, DefineXMLParseError
 from .utils import infer_data_type
@@ -24,12 +25,15 @@ class MetadataExtractor:
 
     This class replaces the XSLT transformation with pure Python code,
     providing better error handling and flexibility.
+
+    Supports both Define-XML v2.0 and v2.1 specifications.
     """
 
-    # XML namespaces used in Define-XML
+    # Base XML namespaces - will be updated dynamically during parsing
     NAMESPACES = {
         'odm': 'http://www.cdisc.org/ns/odm/v1.3',
-        'def': 'http://www.cdisc.org/ns/def/v2.x'
+        'def': None,  # Will be detected from document
+        'xlink': 'http://www.w3.org/1999/xlink'
     }
 
     def __init__(self, define_xml_path: Optional[str] = None):
@@ -42,21 +46,116 @@ class MetadataExtractor:
         self.define_xml_path = define_xml_path
         self.tree = None
         self.root = None
+        self.define_version = None  # Will store detected version (2.0 or 2.1)
+        self.namespaces = self.NAMESPACES.copy()  # Instance copy
 
         if define_xml_path and os.path.exists(define_xml_path):
             self._parse_define_xml()
 
     def _parse_define_xml(self):
-        """Parse the Define-XML file and store the tree."""
+        """Parse the Define-XML file, detect version, and store the tree."""
         try:
             logger.info(f"Parsing Define-XML file: {self.define_xml_path}")
             self.tree = ET.parse(self.define_xml_path)
             self.root = self.tree.getroot()
-            logger.debug("Successfully parsed Define-XML")
+
+            # Detect namespaces from the root element
+            self._detect_namespaces()
+
+            # Detect Define-XML version
+            self._detect_define_version()
+
+            logger.info(f"Successfully parsed Define-XML v{self.define_version}")
         except ET.ParseError as e:
             raise DefineXMLParseError(self.define_xml_path, str(e))
         except Exception as e:
             raise DefineXMLParseError(self.define_xml_path, str(e))
+
+    def _detect_namespaces(self):
+        """
+        Detect and extract namespaces from the XML document.
+
+        Updates the instance namespaces dictionary with actual URIs from the document.
+        """
+        # ElementTree doesn't expose xmlns attributes easily, so we parse the raw file
+        # to extract namespace declarations
+        try:
+            with open(self.define_xml_path, 'r', encoding='utf-8') as f:
+                # Read first few lines to find namespace declarations
+                content = f.read(4096)  # Read first 4KB which should contain ODM element
+
+                # Extract xmlns declarations using regex
+                # Match xmlns:prefix="uri" or xmlns="uri"
+                xmlns_pattern = r'xmlns:?(\w+)?="([^"]+)"'
+                matches = re.findall(xmlns_pattern, content)
+
+                for prefix, uri in matches:
+                    if not prefix:  # Default namespace
+                        self.namespaces['odm'] = uri
+                    else:
+                        self.namespaces[prefix] = uri
+
+        except Exception as e:
+            logger.warning(f"Could not extract namespaces from file: {e}")
+
+        # Also extract namespace from the root tag (default namespace)
+        root_tag = self.root.tag
+        if root_tag.startswith('{'):
+            ns_uri = root_tag.split('}')[0][1:]
+            self.namespaces['odm'] = ns_uri
+
+        logger.debug(f"Detected namespaces: {self.namespaces}")
+
+    def _detect_define_version(self):
+        """
+        Detect Define-XML version from namespace URI.
+
+        Sets self.define_version to "2.0", "2.1", or None.
+        """
+        def_ns = self.namespaces.get('def', '') or ''
+
+        if 'v2.0' in def_ns:
+            self.define_version = "2.0"
+        elif 'v2.1' in def_ns:
+            self.define_version = "2.1"
+        elif 'v2.x' in def_ns or ('/def/v2' in def_ns and def_ns):
+            # Generic v2.x namespace - try to determine from MetaDataVersion
+            self.define_version = self._detect_version_from_metadata()
+        elif not def_ns:
+            # No def namespace found - try to detect from metadata structure
+            logger.debug("No def namespace found, detecting from metadata structure")
+            self.define_version = self._detect_version_from_metadata()
+        else:
+            logger.warning(f"Unable to determine Define-XML version from namespace: {def_ns}")
+            self.define_version = None
+
+        logger.debug(f"Detected Define-XML version: {self.define_version}")
+
+    def _detect_version_from_metadata(self):
+        """
+        Fallback method to detect version from MetaDataVersion structure.
+
+        v2.1 uses def:Standards element, v2.0 uses def:StandardName attribute.
+        """
+        # Try to find MetaDataVersion
+        study = self.root.find(f'odm:Study', self.namespaces)
+        if study is not None:
+            mdv = study.find(f'odm:MetaDataVersion', self.namespaces)
+            if mdv is not None:
+                # Check for v2.1 Standards element
+                def_ns = self.namespaces.get('def', '')
+                if def_ns:
+                    standards = mdv.find(f'def:Standards')
+                    if standards is not None:
+                        return "2.1"
+
+                # Check for v2.0 StandardName attribute
+                for attr in mdv.attrib:
+                    if 'StandardName' in attr:
+                        return "2.0"
+
+        # Default to 2.0 if unable to determine
+        return "2.0"
 
     def extract_metadata(
         self,
@@ -126,7 +225,7 @@ class MetadataExtractor:
             metadata["originator"] = originator
 
         # Find the Study element
-        study = self.root.find('odm:Study', self.NAMESPACES)
+        study = self.root.find('odm:Study', self.namespaces)
         if study is None:
             logger.warning("No Study element found in Define-XML")
             return self._create_minimal_metadata(
@@ -138,7 +237,7 @@ class MetadataExtractor:
             metadata["studyOID"] = study_oid
 
         # Find MetaDataVersion
-        metadata_version = study.find('odm:MetaDataVersion', self.NAMESPACES)
+        metadata_version = study.find('odm:MetaDataVersion', self.namespaces)
         if metadata_version is None:
             logger.warning("No MetaDataVersion element found in Define-XML")
             return self._create_minimal_metadata(
@@ -149,6 +248,11 @@ class MetadataExtractor:
         if metadata_version_oid:
             metadata["metaDataVersionOID"] = metadata_version_oid
 
+        # # Extract standards based on Define-XML version
+        # standards_info = self._extract_standards(metadata_version)
+        # if standards_info:
+        #     metadata.update(standards_info)
+        #
         # Find the ItemGroupDef for this dataset
         item_group = self._find_item_group(metadata_version, dataset_name)
         if item_group is None:
@@ -160,18 +264,200 @@ class MetadataExtractor:
             )
 
         # Extract dataset-level metadata
-        metadata["itemGroupOID"] = f"{{{item_group.get('Name', dataset_name)}"
+        # metadata["itemGroupOID"] = f"{{{item_group.get('Name', dataset_name)}"
+        metadata["itemGroupOID"] = f"IG.{item_group.get('Name', dataset_name)}"
         metadata["records"] = num_rows
         metadata["name"] = item_group.get('Name', dataset_name)
 
         # Extract label
-        desc = item_group.find('odm:Description/odm:TranslatedText', self.NAMESPACES)
+        desc = item_group.find('odm:Description/odm:TranslatedText', self.namespaces)
         metadata["label"] = desc.text if desc is not None else dataset_name
 
+        # # Extract Class/SubClass (version-specific)
+        # class_info = self._extract_class(item_group)
+        # if class_info:
+        #     metadata.update(class_info)
+        #
+        # Extract v2.1-specific attributes
+        # v21_attrs = self._extract_v21_attributes(item_group)
+        # if v21_attrs:
+        #     metadata.update(v21_attrs)
+        #
         # Extract column definitions
         metadata["columns"] = self._extract_columns(metadata_version, item_group)
 
         return metadata
+    #
+    # def _extract_class(self, item_group) -> Optional[Dict]:
+    #     """
+    #     Extract Class and SubClass information from ItemGroupDef.
+    #
+    #     In v2.0, Class is a simple attribute.
+    #     In v2.1, Class is a child element with SubClass support.
+    #
+    #     Args:
+    #         item_group: ItemGroupDef XML element
+    #
+    #     Returns:
+    #         Dict with class information or None
+    #     """
+    #     def_ns = self.namespaces.get('def', '')
+    #     if not def_ns:
+    #         return None
+    #
+    #     class_info = {}
+    #
+    #     if self.define_version == "2.1":
+    #         # v2.1: Class is an element with optional SubClass children
+    #         class_elem = item_group.find(f'{{{def_ns}}}Class', self.namespaces)
+    #         if class_elem is not None:
+    #             class_name = class_elem.get('Name')
+    #             if class_name:
+    #                 class_info["class"] = class_name
+    #
+    #             # Extract SubClass elements
+    #             subclasses = []
+    #             for subclass in class_elem.findall(f'{{{def_ns}}}SubClass', self.namespaces):
+    #                 subclass_info = {
+    #                     "name": subclass.get('Name', '')
+    #                 }
+    #                 parent_class = subclass.get('ParentClass')
+    #                 if parent_class:
+    #                     subclass_info["parentClass"] = parent_class
+    #
+    #                 subclasses.append(subclass_info)
+    #
+    #             if subclasses:
+    #                 class_info["subClasses"] = subclasses
+    #     else:
+    #         # v2.0: Class is a simple attribute
+    #         class_attr = item_group.get(f'{{{def_ns}}}Class')
+    #         if class_attr:
+    #             class_info["class"] = class_attr
+    #
+    #     return class_info if class_info else None
+    #
+    # def _extract_v21_attributes(self, item_group) -> Optional[Dict]:
+    #     """
+    #     Extract Define-XML v2.1-specific attributes from ItemGroupDef.
+    #
+    #     Includes: IsNonStandard, HasNoData, StandardOID
+    #
+    #     Args:
+    #         item_group: ItemGroupDef XML element
+    #
+    #     Returns:
+    #         Dict with v2.1 attributes or None
+    #     """
+    #     if self.define_version != "2.1":
+    #         return None
+    #
+    #     def_ns = self.namespaces.get('def', '')
+    #     if not def_ns:
+    #         return None
+    #
+    #     v21_attrs = {}
+    #
+    #     # IsNonStandard
+    #     is_non_standard = item_group.get(f'{{{def_ns}}}IsNonStandard')
+    #     if is_non_standard:
+    #         v21_attrs["isNonStandard"] = is_non_standard
+    #
+    #     # HasNoData
+    #     has_no_data = item_group.get(f'{{{def_ns}}}HasNoData')
+    #     if has_no_data:
+    #         v21_attrs["hasNoData"] = has_no_data
+    #
+    #     # StandardOID
+    #     standard_oid = item_group.get(f'{{{def_ns}}}StandardOID')
+    #     if standard_oid:
+    #         v21_attrs["standardOID"] = standard_oid
+    #
+    # #     return v21_attrs if v21_attrs else None
+    #
+    # def _extract_standards(self, metadata_version) -> Optional[Dict]:
+    #     """
+    #     Extract standards information based on Define-XML version.
+    #
+    #     Args:
+    #         metadata_version: MetaDataVersion XML element
+    #
+    #     Returns:
+    #         Dict with standards information or None
+    #     """
+    #     if self.define_version == "2.1":
+    #         return self._extract_standards_v21(metadata_version)
+    #     else:
+    #         return self._extract_standards_v20(metadata_version)
+    #
+    # # def _extract_standards_v20(self, metadata_version) -> Optional[Dict]:
+    # #     """
+    #     Extract standards from Define-XML v2.0 (attribute-based).
+    #
+    #     Args:
+    #         metadata_version: MetaDataVersion XML element
+    #
+    #     Returns:
+    #         Dict with standard name and version, or None
+    #     """
+    #     standards = {}
+    #
+    #     # In v2.0, standards are attributes on MetaDataVersion
+    #     def_ns = self.namespaces.get('def', '')
+    #     if def_ns:
+    #         standard_name = metadata_version.get(f'{{{def_ns}}}StandardName')
+    #         standard_version = metadata_version.get(f'{{{def_ns}}}StandardVersion')
+    #
+    #         if standard_name:
+    #             standards["standardName"] = standard_name
+    #         if standard_version:
+    #             standards["standardVersion"] = standard_version
+    #
+    #     return standards if standards else None
+
+    # def _extract_standards_v21(self, metadata_version) -> Optional[Dict]:
+    #     """
+    #     Extract standards from Define-XML v2.1 (element-based).
+    #
+    #     Args:
+    #         metadata_version: MetaDataVersion XML element
+    #
+    #     Returns:
+    #         Dict with standards list, or None
+    #     """
+    #     def_ns = self.namespaces.get('def', '')
+    #     if not def_ns:
+    #         return None
+    #
+    #     standards_elem = metadata_version.find(f'{{{def_ns}}}Standards', self.namespaces)
+    #     if standards_elem is None:
+    #         return None
+    #
+    #     standards_list = []
+    #     for standard in standards_elem.findall(f'{{{def_ns}}}Standard', self.namespaces):
+    #         standard_info = {
+    #             "oid": standard.get('OID', ''),
+    #             "name": standard.get('Name', ''),
+    #             "type": standard.get('Type', ''),
+    #             "version": standard.get('Version', '')
+    #         }
+    #
+    #         # Optional attributes
+    #         publishing_set = standard.get('PublishingSet')
+    #         if publishing_set:
+    #             standard_info["publishingSet"] = publishing_set
+    #
+    #         status = standard.get('Status')
+    #         if status:
+    #             standard_info["status"] = status
+    #
+    #         comment_oid = standard.get(f'{{{def_ns}}}CommentOID')
+    #         if comment_oid:
+    #             standard_info["commentOID"] = comment_oid
+    #
+    #         standards_list.append(standard_info)
+    #
+    #     return {"standards": standards_list} if standards_list else None
 
     def _find_item_group(self, metadata_version, dataset_name: str):
         """
@@ -188,7 +474,7 @@ class MetadataExtractor:
         """
         dataset_name_upper = dataset_name.upper()
 
-        for item_group in metadata_version.findall('odm:ItemGroupDef', self.NAMESPACES):
+        for item_group in metadata_version.findall('odm:ItemGroupDef', self.namespaces):
             name = item_group.get('Name', '')
             if name.upper() == dataset_name_upper:
                 return item_group
@@ -208,13 +494,13 @@ class MetadataExtractor:
         """
         columns = []
 
-        for item_ref in item_group.findall('odm:ItemRef', self.NAMESPACES):
+        for item_ref in item_group.findall('odm:ItemRef', self.namespaces):
             item_oid = item_ref.get('ItemOID')
 
             # Find the corresponding ItemDef
             item_def = metadata_version.find(
                 f"odm:ItemDef[@OID='{item_oid}']",
-                self.NAMESPACES
+                self.namespaces
             )
 
             if item_def is None:
@@ -243,7 +529,7 @@ class MetadataExtractor:
         }
 
         # Extract label
-        desc = item_def.find('odm:Description/odm:TranslatedText', self.NAMESPACES)
+        desc = item_def.find('odm:Description/odm:TranslatedText', self.namespaces)
         column["label"] = desc.text if desc is not None else column["name"]
 
         # Map ODM data types to Dataset-JSON data types
@@ -255,18 +541,75 @@ class MetadataExtractor:
         if length:
             column["length"] = int(length)
 
-        display_format = item_def.get(
-            '{http://www.cdisc.org/ns/def/v2.x}DisplayFormat'
-        )
-        if display_format:
-            column["displayFormat"] = display_format
+        # Extract DisplayFormat using detected def namespace
+        def_ns = self.namespaces.get('def', '')
+        if def_ns:
+            display_format = item_def.get(f'{def_ns}DisplayFormat')
+            if display_format:
+                column["displayFormat"] = display_format
 
         key_sequence = item_ref.get('KeySequence')
         if key_sequence:
             column["keySequence"] = int(key_sequence)
 
+        # Extract Origin information (v2.1 supports multiple origins)
+        # origins = self._extract_origins(item_def)
+        # if origins:
+        #     column["origins"] = origins
+        #
         return column
-
+    #
+    # def _extract_origins(self, item_def) -> Optional[List[Dict]]:
+    #     """
+    #     Extract Origin information from ItemDef.
+    #
+    #     v2.1 supports multiple Origin elements with Source attribute.
+    #     v2.0 supports a single Origin element.
+    #
+    #     Args:
+    #         item_def: ItemDef XML element
+    #
+    #     Returns:
+    #         List of origin dictionaries or None
+    #     """
+    #     def_ns = self.namespaces.get('def', '')
+    #     if not def_ns:
+    #         return None
+    #
+    #     origins = []
+    #
+    #     for origin in item_def.findall(f'{{{def_ns}}}Origin', self.namespaces):
+    #         origin_info = {
+    #             "type": origin.get('Type', '')
+    #         }
+    #
+    #         # v2.1 adds Source attribute
+    #         if self.define_version == "2.1":
+    #             source = origin.get('Source')
+    #             if source:
+    #                 origin_info["source"] = source
+    #
+    #         # Extract Description if present
+    #         desc_elem = origin.find(f'{{{def_ns}}}Description', self.namespaces)
+    #         if desc_elem is not None:
+    #             translated_text = desc_elem.find('odm:TranslatedText', self.namespaces)
+    #             if translated_text is not None and translated_text.text:
+    #                 origin_info["description"] = translated_text.text
+    #
+    #         # Extract DocumentRef elements
+    #         doc_refs = []
+    #         for doc_ref in origin.findall(f'{{{def_ns}}}DocumentRef', self.namespaces):
+    #             leaf_id = doc_ref.get('leafID')
+    #             if leaf_id:
+    #                 doc_refs.append({"leafID": leaf_id})
+    #
+    #         if doc_refs:
+    #             origin_info["documentRefs"] = doc_refs
+    #
+    #         origins.append(origin_info)
+    #
+    #     return origins if origins else None
+    #
     @staticmethod
     def _map_data_type(odm_type: str) -> str:
         """
@@ -303,7 +646,6 @@ class MetadataExtractor:
     ) -> Dict:
         """
         Create minimal metadata structure when Define-XML is not available.
-
         The columns array will be populated later from the source data.
 
         Args:
@@ -314,14 +656,20 @@ class MetadataExtractor:
         Returns:
             Dict containing minimal Dataset-JSON metadata
         """
+        # TODO remove debugging
+        if "{" in dataset_name:
+            raise ValueError(f"found the error in the itemGroupOID: {dataset_name}")
+        elif "{" in f"IG.{dataset_name}":
+            raise ValueError(f"found the error in the itemGroupOID: {dataset_name}")
+
         return {
             "datasetJSONCreationDateTime": creation_datetime,
             "datasetJSONVersion": "1.1.0",
-            "itemGroupOID": f"{{{dataset_name}",
+            "itemGroupOID": f"IG.{dataset_name}",
             "records": num_rows,
             "name": dataset_name,
             "label": dataset_name,
-            "columns": []  # Will be populated from source data
+            "columns": []  # will be populated from source data
         }
 
     def infer_columns_from_data(

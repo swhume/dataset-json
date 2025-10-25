@@ -87,6 +87,7 @@ class TestExtractMetadata:
 
         assert metadata["datasetJSONVersion"] == "1.1.0"
         assert metadata["records"] == 50
+        assert metadata["itemGroupOID"] == "IG.DM"
         assert metadata["name"] == "DM"
         assert metadata["label"] == "DM"
         assert metadata["columns"] == []
@@ -136,7 +137,7 @@ class TestMinimalMetadata:
         assert metadata["name"] == "TEST"
         assert metadata["label"] == "TEST"
         assert metadata["records"] == 42
-        assert metadata["itemGroupOID"] == "{TEST"
+        assert metadata["itemGroupOID"] == "IG.TEST"
         assert metadata["columns"] == []
 
     def test_minimal_metadata_different_values(self):

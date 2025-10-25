@@ -157,7 +157,7 @@ class DatasetConverter(ABC):
                     "%Y-%m-%dT%H:%M:%S"
                 ),
                 "datasetJSONVersion": "1.1.0",
-                "itemGroupOID": f"{{{dataset_name}",
+                "itemGroupOID": f"IG.{dataset_name}",
                 "records": num_rows,
                 "name": dataset_name,
                 "label": dataset_name,

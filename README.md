@@ -380,7 +380,6 @@ dataset-json/
 ## Limitations
 
 - No support for ADaM targetDataType integer dates (planned)
-- Uses Define-XML v2.0 (v2.1 support planned)
 - Not optimized for very large datasets (>1GB)
 
 ## Contributing
