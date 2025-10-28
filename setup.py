@@ -25,7 +25,7 @@ def read_requirements():
 
 setup(
     name='dsjconvert',
-    version='1.1.0',
+    version='0.9.0',
     author='dsjconvert contributors',
     author_email='',
     description='Convert SAS datasets to Dataset-JSON v1.1 format',
