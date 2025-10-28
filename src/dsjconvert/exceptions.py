@@ -1,6 +1,5 @@
 """
 Custom exceptions for dsjconvert package.
-
 This module defines custom exception classes for different error scenarios
 that can occur during dataset conversion.
 """

@@ -113,7 +113,7 @@ class TestInferColumns:
         mock_meta = MagicMock()
         mock_meta.column_labels = None
 
-        columns = converter._infer_columns(sample_dataframe, mock_meta)
+        columns = converter._infer_columns(sample_dataframe, mock_meta, 'TEST')
 
         assert len(columns) == len(sample_dataframe.columns)
         assert all('name' in col for col in columns)
@@ -126,7 +126,7 @@ class TestInferColumns:
         mock_meta = MagicMock()
         mock_meta.column_labels = ['Study ID', 'Subject ID', 'Age', 'Weight', 'Visit Date']
 
-        columns = converter._infer_columns(sample_dataframe, mock_meta)
+        columns = converter._infer_columns(sample_dataframe, mock_meta, 'TEST')
 
         assert columns[0]['label'] == 'Study ID'
         assert columns[1]['label'] == 'Subject ID'
@@ -138,7 +138,7 @@ class TestInferColumns:
         mock_meta = MagicMock()
         mock_meta.column_labels = None
 
-        columns = converter._infer_columns(sample_dataframe, mock_meta)
+        columns = converter._infer_columns(sample_dataframe, mock_meta, 'TEST')
 
         assert len(columns) > 0
         assert all('name' in col for col in columns)
@@ -153,7 +153,7 @@ class TestInferColumns:
         mock_meta = MagicMock()
         mock_meta.column_labels = None
 
-        columns = converter._infer_columns(df, mock_meta)
+        columns = converter._infer_columns(df, mock_meta, 'TEST')
 
         types = {col['name']: col['dataType'] for col in columns}
         # String values are detected

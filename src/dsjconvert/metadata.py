@@ -1,6 +1,5 @@
 """
 Metadata extraction for dsjconvert package.
-
 This module provides functionality to extract Dataset-JSON metadata from
 Define-XML files or infer it from source datasets when Define-XML is not available.
 This replaces the XSLT transformation in the original implementation.
@@ -13,7 +12,8 @@ import xml.etree.ElementTree as ET
 from typing import Dict, List, Optional
 import re
 
-from .exceptions import DefineXMLNotFoundError, DefineXMLParseError
+# from .exceptions import DefineXMLNotFoundError, DefineXMLParseError
+from .exceptions import DefineXMLParseError
 from .utils import infer_data_type
 
 logger = logging.getLogger(__name__)
@@ -22,10 +22,8 @@ logger = logging.getLogger(__name__)
 class MetadataExtractor:
     """
     Extracts metadata from Define-XML or infers it from source datasets.
-
     This class replaces the XSLT transformation with pure Python code,
     providing better error handling and flexibility.
-
     Supports both Define-XML v2.0 and v2.1 specifications.
     """
 
@@ -39,7 +37,6 @@ class MetadataExtractor:
     def __init__(self, define_xml_path: Optional[str] = None):
         """
         Initialize the MetadataExtractor.
-
         Args:
             define_xml_path: Path to Define-XML file (optional)
         """
@@ -74,7 +71,6 @@ class MetadataExtractor:
     def _detect_namespaces(self):
         """
         Detect and extract namespaces from the XML document.
-
         Updates the instance namespaces dictionary with actual URIs from the document.
         """
         # ElementTree doesn't expose xmlns attributes easily, so we parse the raw file
@@ -109,7 +105,6 @@ class MetadataExtractor:
     def _detect_define_version(self):
         """
         Detect Define-XML version from namespace URI.
-
         Sets self.define_version to "2.0", "2.1", or None.
         """
         def_ns = self.namespaces.get('def', '') or ''
@@ -134,7 +129,6 @@ class MetadataExtractor:
     def _detect_version_from_metadata(self):
         """
         Fallback method to detect version from MetaDataVersion structure.
-
         v2.1 uses def:Standards element, v2.0 uses def:StandardName attribute.
         """
         # Try to find MetaDataVersion
@@ -165,12 +159,10 @@ class MetadataExtractor:
     ) -> Dict:
         """
         Extract or infer metadata for a dataset.
-
         Args:
             dataset_name: Name of the dataset
             num_rows: Number of rows in the dataset
             creation_datetime: ISO format creation datetime (defaults to now)
-
         Returns:
             Dict containing Dataset-JSON metadata structure
         """
@@ -198,14 +190,11 @@ class MetadataExtractor:
     ) -> Dict:
         """
         Extract metadata from Define-XML file.
-
         This method replicates the XSLT transformation logic in pure Python.
-
         Args:
             dataset_name: Name of the dataset
             num_rows: Number of rows in the dataset
             creation_datetime: ISO format creation datetime
-
         Returns:
             Dict containing Dataset-JSON metadata
         """
@@ -248,11 +237,6 @@ class MetadataExtractor:
         if metadata_version_oid:
             metadata["metaDataVersionOID"] = metadata_version_oid
 
-        # # Extract standards based on Define-XML version
-        # standards_info = self._extract_standards(metadata_version)
-        # if standards_info:
-        #     metadata.update(standards_info)
-        #
         # Find the ItemGroupDef for this dataset
         item_group = self._find_item_group(metadata_version, dataset_name)
         if item_group is None:
@@ -264,7 +248,6 @@ class MetadataExtractor:
             )
 
         # Extract dataset-level metadata
-        # metadata["itemGroupOID"] = f"{{{item_group.get('Name', dataset_name)}"
         metadata["itemGroupOID"] = f"IG.{item_group.get('Name', dataset_name)}"
         metadata["records"] = num_rows
         metadata["name"] = item_group.get('Name', dataset_name)
@@ -272,203 +255,17 @@ class MetadataExtractor:
         # Extract label
         desc = item_group.find('odm:Description/odm:TranslatedText', self.namespaces)
         metadata["label"] = desc.text if desc is not None else dataset_name
-
-        # # Extract Class/SubClass (version-specific)
-        # class_info = self._extract_class(item_group)
-        # if class_info:
-        #     metadata.update(class_info)
-        #
-        # Extract v2.1-specific attributes
-        # v21_attrs = self._extract_v21_attributes(item_group)
-        # if v21_attrs:
-        #     metadata.update(v21_attrs)
-        #
-        # Extract column definitions
         metadata["columns"] = self._extract_columns(metadata_version, item_group)
 
         return metadata
-    #
-    # def _extract_class(self, item_group) -> Optional[Dict]:
-    #     """
-    #     Extract Class and SubClass information from ItemGroupDef.
-    #
-    #     In v2.0, Class is a simple attribute.
-    #     In v2.1, Class is a child element with SubClass support.
-    #
-    #     Args:
-    #         item_group: ItemGroupDef XML element
-    #
-    #     Returns:
-    #         Dict with class information or None
-    #     """
-    #     def_ns = self.namespaces.get('def', '')
-    #     if not def_ns:
-    #         return None
-    #
-    #     class_info = {}
-    #
-    #     if self.define_version == "2.1":
-    #         # v2.1: Class is an element with optional SubClass children
-    #         class_elem = item_group.find(f'{{{def_ns}}}Class', self.namespaces)
-    #         if class_elem is not None:
-    #             class_name = class_elem.get('Name')
-    #             if class_name:
-    #                 class_info["class"] = class_name
-    #
-    #             # Extract SubClass elements
-    #             subclasses = []
-    #             for subclass in class_elem.findall(f'{{{def_ns}}}SubClass', self.namespaces):
-    #                 subclass_info = {
-    #                     "name": subclass.get('Name', '')
-    #                 }
-    #                 parent_class = subclass.get('ParentClass')
-    #                 if parent_class:
-    #                     subclass_info["parentClass"] = parent_class
-    #
-    #                 subclasses.append(subclass_info)
-    #
-    #             if subclasses:
-    #                 class_info["subClasses"] = subclasses
-    #     else:
-    #         # v2.0: Class is a simple attribute
-    #         class_attr = item_group.get(f'{{{def_ns}}}Class')
-    #         if class_attr:
-    #             class_info["class"] = class_attr
-    #
-    #     return class_info if class_info else None
-    #
-    # def _extract_v21_attributes(self, item_group) -> Optional[Dict]:
-    #     """
-    #     Extract Define-XML v2.1-specific attributes from ItemGroupDef.
-    #
-    #     Includes: IsNonStandard, HasNoData, StandardOID
-    #
-    #     Args:
-    #         item_group: ItemGroupDef XML element
-    #
-    #     Returns:
-    #         Dict with v2.1 attributes or None
-    #     """
-    #     if self.define_version != "2.1":
-    #         return None
-    #
-    #     def_ns = self.namespaces.get('def', '')
-    #     if not def_ns:
-    #         return None
-    #
-    #     v21_attrs = {}
-    #
-    #     # IsNonStandard
-    #     is_non_standard = item_group.get(f'{{{def_ns}}}IsNonStandard')
-    #     if is_non_standard:
-    #         v21_attrs["isNonStandard"] = is_non_standard
-    #
-    #     # HasNoData
-    #     has_no_data = item_group.get(f'{{{def_ns}}}HasNoData')
-    #     if has_no_data:
-    #         v21_attrs["hasNoData"] = has_no_data
-    #
-    #     # StandardOID
-    #     standard_oid = item_group.get(f'{{{def_ns}}}StandardOID')
-    #     if standard_oid:
-    #         v21_attrs["standardOID"] = standard_oid
-    #
-    # #     return v21_attrs if v21_attrs else None
-    #
-    # def _extract_standards(self, metadata_version) -> Optional[Dict]:
-    #     """
-    #     Extract standards information based on Define-XML version.
-    #
-    #     Args:
-    #         metadata_version: MetaDataVersion XML element
-    #
-    #     Returns:
-    #         Dict with standards information or None
-    #     """
-    #     if self.define_version == "2.1":
-    #         return self._extract_standards_v21(metadata_version)
-    #     else:
-    #         return self._extract_standards_v20(metadata_version)
-    #
-    # # def _extract_standards_v20(self, metadata_version) -> Optional[Dict]:
-    # #     """
-    #     Extract standards from Define-XML v2.0 (attribute-based).
-    #
-    #     Args:
-    #         metadata_version: MetaDataVersion XML element
-    #
-    #     Returns:
-    #         Dict with standard name and version, or None
-    #     """
-    #     standards = {}
-    #
-    #     # In v2.0, standards are attributes on MetaDataVersion
-    #     def_ns = self.namespaces.get('def', '')
-    #     if def_ns:
-    #         standard_name = metadata_version.get(f'{{{def_ns}}}StandardName')
-    #         standard_version = metadata_version.get(f'{{{def_ns}}}StandardVersion')
-    #
-    #         if standard_name:
-    #             standards["standardName"] = standard_name
-    #         if standard_version:
-    #             standards["standardVersion"] = standard_version
-    #
-    #     return standards if standards else None
-
-    # def _extract_standards_v21(self, metadata_version) -> Optional[Dict]:
-    #     """
-    #     Extract standards from Define-XML v2.1 (element-based).
-    #
-    #     Args:
-    #         metadata_version: MetaDataVersion XML element
-    #
-    #     Returns:
-    #         Dict with standards list, or None
-    #     """
-    #     def_ns = self.namespaces.get('def', '')
-    #     if not def_ns:
-    #         return None
-    #
-    #     standards_elem = metadata_version.find(f'{{{def_ns}}}Standards', self.namespaces)
-    #     if standards_elem is None:
-    #         return None
-    #
-    #     standards_list = []
-    #     for standard in standards_elem.findall(f'{{{def_ns}}}Standard', self.namespaces):
-    #         standard_info = {
-    #             "oid": standard.get('OID', ''),
-    #             "name": standard.get('Name', ''),
-    #             "type": standard.get('Type', ''),
-    #             "version": standard.get('Version', '')
-    #         }
-    #
-    #         # Optional attributes
-    #         publishing_set = standard.get('PublishingSet')
-    #         if publishing_set:
-    #             standard_info["publishingSet"] = publishing_set
-    #
-    #         status = standard.get('Status')
-    #         if status:
-    #             standard_info["status"] = status
-    #
-    #         comment_oid = standard.get(f'{{{def_ns}}}CommentOID')
-    #         if comment_oid:
-    #             standard_info["commentOID"] = comment_oid
-    #
-    #         standards_list.append(standard_info)
-    #
-    #     return {"standards": standards_list} if standards_list else None
 
     def _find_item_group(self, metadata_version, dataset_name: str):
         """
         Find the ItemGroupDef element for a dataset.
-
         Uses case-insensitive matching.
-
         Args:
             metadata_version: MetaDataVersion XML element
             dataset_name: Name of the dataset
-
         Returns:
             ItemGroupDef XML element or None
         """
@@ -484,11 +281,9 @@ class MetadataExtractor:
     def _extract_columns(self, metadata_version, item_group) -> List[Dict]:
         """
         Extract column definitions from ItemGroupDef.
-
         Args:
             metadata_version: MetaDataVersion XML element
             item_group: ItemGroupDef XML element
-
         Returns:
             List of column definition dictionaries
         """
@@ -515,11 +310,9 @@ class MetadataExtractor:
     def _extract_column_definition(self, item_def, item_ref) -> Dict:
         """
         Extract a single column definition.
-
         Args:
             item_def: ItemDef XML element
             item_ref: ItemRef XML element
-
         Returns:
             Dict containing column metadata
         """
@@ -552,72 +345,14 @@ class MetadataExtractor:
         if key_sequence:
             column["keySequence"] = int(key_sequence)
 
-        # Extract Origin information (v2.1 supports multiple origins)
-        # origins = self._extract_origins(item_def)
-        # if origins:
-        #     column["origins"] = origins
-        #
         return column
-    #
-    # def _extract_origins(self, item_def) -> Optional[List[Dict]]:
-    #     """
-    #     Extract Origin information from ItemDef.
-    #
-    #     v2.1 supports multiple Origin elements with Source attribute.
-    #     v2.0 supports a single Origin element.
-    #
-    #     Args:
-    #         item_def: ItemDef XML element
-    #
-    #     Returns:
-    #         List of origin dictionaries or None
-    #     """
-    #     def_ns = self.namespaces.get('def', '')
-    #     if not def_ns:
-    #         return None
-    #
-    #     origins = []
-    #
-    #     for origin in item_def.findall(f'{{{def_ns}}}Origin', self.namespaces):
-    #         origin_info = {
-    #             "type": origin.get('Type', '')
-    #         }
-    #
-    #         # v2.1 adds Source attribute
-    #         if self.define_version == "2.1":
-    #             source = origin.get('Source')
-    #             if source:
-    #                 origin_info["source"] = source
-    #
-    #         # Extract Description if present
-    #         desc_elem = origin.find(f'{{{def_ns}}}Description', self.namespaces)
-    #         if desc_elem is not None:
-    #             translated_text = desc_elem.find('odm:TranslatedText', self.namespaces)
-    #             if translated_text is not None and translated_text.text:
-    #                 origin_info["description"] = translated_text.text
-    #
-    #         # Extract DocumentRef elements
-    #         doc_refs = []
-    #         for doc_ref in origin.findall(f'{{{def_ns}}}DocumentRef', self.namespaces):
-    #             leaf_id = doc_ref.get('leafID')
-    #             if leaf_id:
-    #                 doc_refs.append({"leafID": leaf_id})
-    #
-    #         if doc_refs:
-    #             origin_info["documentRefs"] = doc_refs
-    #
-    #         origins.append(origin_info)
-    #
-    #     return origins if origins else None
-    #
+
     @staticmethod
     def _map_data_type(odm_type: str) -> str:
         """
         Map ODM data type to Dataset-JSON data type.
-
         Args:
             odm_type: ODM data type string
-
         Returns:
             Dataset-JSON data type string
         """
@@ -647,20 +382,13 @@ class MetadataExtractor:
         """
         Create minimal metadata structure when Define-XML is not available.
         The columns array will be populated later from the source data.
-
         Args:
             dataset_name: Name of the dataset
             num_rows: Number of rows in the dataset
             creation_datetime: ISO format creation datetime
-
         Returns:
             Dict containing minimal Dataset-JSON metadata
         """
-        # TODO remove debugging
-        if "{" in dataset_name:
-            raise ValueError(f"found the error in the itemGroupOID: {dataset_name}")
-        elif "{" in f"IG.{dataset_name}":
-            raise ValueError(f"found the error in the itemGroupOID: {dataset_name}")
 
         return {
             "datasetJSONCreationDateTime": creation_datetime,
@@ -675,19 +403,18 @@ class MetadataExtractor:
     def infer_columns_from_data(
         self,
         column_names: List[str],
+        dataset_name: str,
         column_labels: Optional[Dict[str, str]] = None,
         column_types: Optional[Dict[str, str]] = None,
         sample_data: Optional[Dict[str, any]] = None
     ) -> List[Dict]:
         """
         Infer column definitions from source dataset metadata and data.
-
         Args:
             column_names: List of column names from the dataset
             column_labels: Optional dict mapping column names to labels
             column_types: Optional dict mapping column names to data types
             sample_data: Optional dict with sample values for type inference
-
         Returns:
             List of column definition dictionaries
         """
@@ -695,7 +422,7 @@ class MetadataExtractor:
 
         for i, col_name in enumerate(column_names):
             column = {
-                "itemOID": f"IT.{col_name}",
+                "itemOID": f"IT.{dataset_name}.{col_name}",
                 "name": col_name,
                 "label": column_labels.get(col_name, col_name) if column_labels else col_name,
             }
@@ -720,10 +447,8 @@ class MetadataExtractor:
     def _map_pyreadstat_type(pyreadstat_type: str) -> str:
         """
         Map pyreadstat variable type to Dataset-JSON data type.
-
         Args:
             pyreadstat_type: Variable type from pyreadstat metadata
-
         Returns:
             Dataset-JSON data type string
         """

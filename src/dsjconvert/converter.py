@@ -1,6 +1,5 @@
 """
 Dataset converter for dsjconvert package.
-
 This module provides the main conversion functionality with an object-oriented
 design. It supports converting SAS V5 XPORT (XPT) and SAS7BDAT datasets to
 Dataset-JSON format.
@@ -8,7 +7,7 @@ Dataset-JSON format.
 
 import os
 import logging
-import json
+# import json
 import datetime
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Tuple
@@ -27,7 +26,6 @@ logger = logging.getLogger(__name__)
 class DatasetConverter(ABC):
     """
     Abstract base class for dataset converters.
-
     This class provides the common conversion logic for all dataset types.
     Subclasses implement format-specific reading methods.
     """
@@ -40,7 +38,6 @@ class DatasetConverter(ABC):
     ):
         """
         Initialize the converter.
-
         Args:
             metadata_extractor: MetadataExtractor instance (optional)
             output_format: Output format ('json' or 'ndjson')
@@ -55,13 +52,10 @@ class DatasetConverter(ABC):
     def read_dataset(self, file_path: str) -> Tuple[pd.DataFrame, pyreadstat._readstat_parser.metadata_container]:
         """
         Read a dataset file and return dataframe and metadata.
-
         Args:
             file_path: Path to the dataset file
-
         Returns:
             Tuple of (DataFrame, metadata)
-
         Raises:
             DatasetReadError: If file cannot be read
         """
@@ -75,15 +69,12 @@ class DatasetConverter(ABC):
     ) -> str:
         """
         Convert a single dataset file to Dataset-JSON format.
-
         Args:
             input_path: Path to input dataset file
             output_dir: Directory for output files
             dataset_name: Optional dataset name (inferred from filename if not provided)
-
         Returns:
             str: Path to the output file
-
         Raises:
             DatasetConversionError: If conversion fails
         """
@@ -134,12 +125,10 @@ class DatasetConverter(ABC):
     ) -> Dict:
         """
         Extract or infer metadata for the dataset.
-
         Args:
             dataset_name: Name of the dataset
             meta: Metadata from pyreadstat
             df: DataFrame containing the data
-
         Returns:
             Dict containing Dataset-JSON metadata
         """
@@ -166,22 +155,21 @@ class DatasetConverter(ABC):
 
         # If columns are empty, infer from data
         if not metadata.get('columns'):
-            metadata['columns'] = self._infer_columns(df, meta)
+            metadata['columns'] = self._infer_columns(df, meta, dataset_name)
 
         return metadata
 
     def _infer_columns(
         self,
         df: pd.DataFrame,
-        meta: pyreadstat._readstat_parser.metadata_container
+        meta: pyreadstat._readstat_parser.metadata_container,
+        dataset_name: str
     ) -> List[Dict]:
         """
         Infer column definitions from DataFrame and metadata.
-
         Args:
             df: DataFrame containing the data
             meta: Metadata from pyreadstat
-
         Returns:
             List of column definition dictionaries
         """
@@ -203,6 +191,7 @@ class DatasetConverter(ABC):
         if self.metadata_extractor:
             return self.metadata_extractor.infer_columns_from_data(
                 column_names,
+                dataset_name=dataset_name,
                 column_labels=column_labels_dict,
                 sample_data=sample_data
             )
@@ -215,7 +204,7 @@ class DatasetConverter(ABC):
                 data_type = infer_data_type(sample_data.get(col)) or "string"
 
                 columns.append({
-                    "itemOID": f"IT.{col}",
+                    "itemOID": f"IT.{dataset_name}.{col}",
                     "name": col,
                     "label": label,
                     "dataType": data_type
@@ -225,11 +214,9 @@ class DatasetConverter(ABC):
     def _convert_rows(self, df: pd.DataFrame, metadata: Dict) -> List[List]:
         """
         Convert DataFrame rows to Dataset-JSON format.
-
         Args:
             df: DataFrame containing the data
             metadata: Dataset metadata
-
         Returns:
             List of rows (each row is a list of values)
         """
@@ -269,12 +256,10 @@ class DatasetConverter(ABC):
     ) -> List:
         """
         Convert a single row to Dataset-JSON format.
-
         Args:
             row: Pandas Series representing a row
             column_mapping: Mapping of source column names to metadata column names
             column_types: Mapping of column names to data types
-
         Returns:
             List of converted values
         """
@@ -293,11 +278,9 @@ class DatasetConverter(ABC):
     def _convert_value(self, value, data_type: str):
         """
         Convert a single value to Dataset-JSON format.
-
         Args:
             value: The value to convert
             data_type: Target data type
-
         Returns:
             Converted value (or None for null values)
         """
@@ -329,12 +312,10 @@ class DatasetConverter(ABC):
     ) -> bool:
         """
         Validate the dataset against the schema.
-
         Args:
             metadata: Dataset metadata
             rows: List of rows
             dataset_name: Name of the dataset
-
         Returns:
             bool: True if validation passes
         """
@@ -363,13 +344,11 @@ class DatasetConverter(ABC):
     ) -> str:
         """
         Write the converted dataset to a file.
-
         Args:
             output_dir: Output directory
             dataset_name: Name of the dataset
             metadata: Dataset metadata
             rows: List of rows
-
         Returns:
             str: Path to the output file
         """
@@ -386,13 +365,10 @@ class XPTConverter(DatasetConverter):
     def read_dataset(self, file_path: str) -> Tuple[pd.DataFrame, pyreadstat._readstat_parser.metadata_container]:
         """
         Read an XPT file.
-
         Args:
             file_path: Path to the XPT file
-
         Returns:
             Tuple of (DataFrame, metadata)
-
         Raises:
             DatasetReadError: If file cannot be read
         """
@@ -412,13 +388,10 @@ class SAS7BDATConverter(DatasetConverter):
     def read_dataset(self, file_path: str) -> Tuple[pd.DataFrame, pyreadstat._readstat_parser.metadata_container]:
         """
         Read a SAS7BDAT file.
-
         Args:
             file_path: Path to the SAS7BDAT file
-
         Returns:
             Tuple of (DataFrame, metadata)
-
         Raises:
             DatasetReadError: If file cannot be read
         """

@@ -159,13 +159,13 @@ class TestInferColumnsFromData:
         extractor = MetadataExtractor()
         column_names = ["STUDYID", "SUBJID", "AGE"]
 
-        columns = extractor.infer_columns_from_data(column_names)
+        columns = extractor.infer_columns_from_data(column_names, 'TEST')
 
         assert len(columns) == 3
         assert columns[0]["name"] == "STUDYID"
         assert columns[0]["label"] == "STUDYID"
         assert columns[0]["dataType"] == "string"  # Default
-        assert columns[0]["itemOID"] == "IT.STUDYID"
+        assert columns[0]["itemOID"] == "IT.TEST.STUDYID"
 
     def test_infer_columns_with_labels(self):
         """Test column inference with custom labels."""
@@ -177,7 +177,7 @@ class TestInferColumnsFromData:
             "AGE": "Age in Years"
         }
 
-        columns = extractor.infer_columns_from_data(column_names, column_labels=column_labels)
+        columns = extractor.infer_columns_from_data(column_names, 'TEST', column_labels=column_labels)
 
         assert columns[0]["label"] == "Study Identifier"
         assert columns[1]["label"] == "Subject Identifier"
@@ -193,7 +193,7 @@ class TestInferColumnsFromData:
             "HEIGHT": "numeric"
         }
 
-        columns = extractor.infer_columns_from_data(column_names, column_types=column_types)
+        columns = extractor.infer_columns_from_data(column_names, 'TEST', column_types=column_types)
 
         assert columns[0]["dataType"] == "string"
         assert columns[1]["dataType"] == "integer"
@@ -209,7 +209,7 @@ class TestInferColumnsFromData:
             "VALUE": 3.14
         }
 
-        columns = extractor.infer_columns_from_data(column_names, sample_data=sample_data)
+        columns = extractor.infer_columns_from_data(column_names, 'TEST',sample_data=sample_data)
 
         assert columns[0]["dataType"] == "string"
         assert columns[1]["dataType"] == "integer"
@@ -219,7 +219,7 @@ class TestInferColumnsFromData:
         """Test column inference with empty list."""
         extractor = MetadataExtractor()
 
-        columns = extractor.infer_columns_from_data([])
+        columns = extractor.infer_columns_from_data([], 'TEST')
 
         assert columns == []
 
@@ -228,10 +228,10 @@ class TestInferColumnsFromData:
         extractor = MetadataExtractor()
         column_names = ["VAR1", "VAR2"]
 
-        columns = extractor.infer_columns_from_data(column_names)
+        columns = extractor.infer_columns_from_data(column_names, 'TEST')
 
-        assert columns[0]["itemOID"] == "IT.VAR1"
-        assert columns[1]["itemOID"] == "IT.VAR2"
+        assert columns[0]["itemOID"] == "IT.TEST.VAR1"
+        assert columns[1]["itemOID"] == "IT.TEST.VAR2"
 
     def test_infer_columns_types_override_sample_data(self):
         """Test that explicit types override sample data inference."""
@@ -242,6 +242,7 @@ class TestInferColumnsFromData:
 
         columns = extractor.infer_columns_from_data(
             column_names,
+            dataset_name='TEST',
             column_types=column_types,
             sample_data=sample_data
         )

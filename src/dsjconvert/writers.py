@@ -1,6 +1,5 @@
 """
 Output writers for dsjconvert package.
-
 This module provides writers for different Dataset-JSON output formats:
 - JSON format: Traditional JSON with all data in a single file
 - NDJSON format: Newline-delimited JSON for streaming large datasets
@@ -20,7 +19,6 @@ logger = logging.getLogger(__name__)
 class DatasetWriter(ABC):
     """
     Abstract base class for dataset writers.
-
     Subclasses must implement the write method for their specific format.
     """
 
@@ -28,7 +26,6 @@ class DatasetWriter(ABC):
     def write(self, output_path: str, metadata: Dict, rows: List[List]) -> None:
         """
         Write dataset to file.
-
         Args:
             output_path: Path where the file should be written
             metadata: Dataset metadata dictionary
@@ -40,7 +37,6 @@ class DatasetWriter(ABC):
     def get_file_extension(self) -> str:
         """
         Get the file extension for this format.
-
         Returns:
             File extension including the dot (e.g., '.json', '.ndjson')
         """
@@ -50,7 +46,6 @@ class DatasetWriter(ABC):
 class JSONWriter(DatasetWriter):
     """
     Writer for traditional JSON format.
-
     Creates a single JSON object with metadata and all rows.
     This is the format used in Dataset-JSON v1.0 and v1.1.
     """
@@ -58,7 +53,6 @@ class JSONWriter(DatasetWriter):
     def write(self, output_path: str, metadata: Dict, rows: List[List]) -> None:
         """
         Write dataset in JSON format.
-
         Args:
             output_path: Path where the JSON file should be written
             metadata: Dataset metadata dictionary
@@ -87,7 +81,6 @@ class JSONWriter(DatasetWriter):
 class NDJSONWriter(DatasetWriter):
     """
     Writer for NDJSON (Newline-Delimited JSON) format.
-
     Creates a file where:
     - Line 1: Metadata object (dataset attributes + column definitions)
     - Lines 2-n: One JSON array per data row
@@ -99,7 +92,6 @@ class NDJSONWriter(DatasetWriter):
     def write(self, output_path: str, metadata: Dict, rows: List[List]) -> None:
         """
         Write dataset in NDJSON format.
-
         Args:
             output_path: Path where the NDJSON file should be written
             metadata: Dataset metadata dictionary
@@ -136,7 +128,6 @@ class NDJSONWriter(DatasetWriter):
 class WriterFactory:
     """
     Factory class for creating dataset writers.
-
     This class provides a centralized way to create writers for different
     output formats.
     """
@@ -151,13 +142,10 @@ class WriterFactory:
     def create_writer(cls, format_name: str) -> DatasetWriter:
         """
         Create a writer for the specified format.
-
         Args:
             format_name: Name of the format ('json' or 'ndjson')
-
         Returns:
             DatasetWriter instance for the specified format
-
         Raises:
             InvalidFormatError: If format_name is not supported
         """
@@ -174,7 +162,6 @@ class WriterFactory:
     def get_supported_formats(cls) -> List[str]:
         """
         Get a list of supported output formats.
-
         Returns:
             List of format names
         """
@@ -184,7 +171,6 @@ class WriterFactory:
     def get_default_format(cls) -> str:
         """
         Get the default output format.
-
         Returns:
             Default format name ('ndjson')
         """
@@ -200,17 +186,14 @@ def write_dataset(
 ) -> str:
     """
     Convenience function to write a dataset in the specified format.
-
     Args:
         output_dir: Directory where the file should be written
         dataset_name: Name of the dataset (used for filename)
         metadata: Dataset metadata dictionary
         rows: List of row data
         format_name: Output format ('json' or 'ndjson', default: 'ndjson')
-
     Returns:
         str: Path to the written file
-
     Raises:
         InvalidFormatError: If format_name is not supported
     """

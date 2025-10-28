@@ -1,6 +1,5 @@
 """
 Utility functions for dsjconvert package.
-
 This module contains helper functions for data type conversions,
 particularly for converting datetime objects to SAS date representations.
 """
@@ -14,21 +13,16 @@ logger = logging.getLogger(__name__)
 def datetime_to_integer(dt):
     """
     Convert datetime object to SAS date representation.
-
     SAS dates are represented as:
     - Date: Days since 1960-01-01
     - DateTime: Days since 1960-01-01 + fractional day for time
     - Time: Fractional day (seconds_since_midnight / 86400)
-
     Args:
         dt: A datetime.date, datetime.datetime, or datetime.time object
-
     Returns:
         float or int: SAS date representation
-
     Raises:
         TypeError: If dt is not a recognized datetime type
-
     Examples:
         >>> datetime_to_integer(datetime.date(1960, 1, 1))
         0
@@ -78,10 +72,8 @@ def datetime_to_integer(dt):
 def infer_data_type(value):
     """
     Infer the Dataset-JSON data type from a Python value.
-
     Args:
         value: Any Python value
-
     Returns:
         str: One of 'string', 'integer', 'double', or None
     """
@@ -102,10 +94,8 @@ def infer_data_type(value):
 def normalize_column_name(name):
     """
     Normalize column name for comparison.
-
     Args:
         name (str): Column name
-
     Returns:
         str: Normalized column name (uppercase, stripped)
     """
@@ -115,16 +105,12 @@ def normalize_column_name(name):
 def match_column_names(source_columns, metadata_columns):
     """
     Match source dataset columns with metadata columns.
-
     Uses case-insensitive matching and returns a mapping.
-
     Args:
         source_columns (list): List of column names from source dataset
         metadata_columns (list): List of column names from metadata
-
     Returns:
         dict: Mapping of source column names to metadata column names
-
     Raises:
         ValueError: If columns cannot be matched
     """
@@ -162,10 +148,8 @@ def match_column_names(source_columns, metadata_columns):
 def get_package_resource_path(resource_name):
     """
     Get the path to a package resource file.
-
     Args:
         resource_name (str): Name of the resource (e.g., 'schemas/dataset.schema.json')
-
     Returns:
         str: Absolute path to the resource
     """

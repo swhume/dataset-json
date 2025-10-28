@@ -1,6 +1,5 @@
 """
 Schema validation for dsjconvert package.
-
 This module provides functionality to validate Dataset-JSON output
 against LinkML YAML schemas for both JSON and NDJSON formats.
 """
@@ -12,7 +11,8 @@ from typing import Dict, List, Optional, Any, Tuple
 
 from linkml.validator import validate
 
-from .exceptions import SchemaNotFoundError, SchemaValidationError
+# from .exceptions import SchemaNotFoundError, SchemaValidationError
+from .exceptions import SchemaValidationError
 from .utils import get_package_resource_path
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,6 @@ logger = logging.getLogger(__name__)
 class DatasetValidator:
     """
     Validates Dataset-JSON files against their schemas.
-
     Supports both JSON and NDJSON format validation with graceful
     handling of missing schemas.
     """
@@ -29,7 +28,6 @@ class DatasetValidator:
     def __init__(self, skip_validation: bool = False):
         """
         Initialize the validator.
-
         Args:
             skip_validation: If True, validation will be skipped
         """
@@ -39,10 +37,8 @@ class DatasetValidator:
     def _get_schema_path(self, schema_name: str) -> Optional[str]:
         """
         Get the path to a LinkML YAML schema file.
-
         Args:
             schema_name: Name of the schema file (e.g., 'dataset.yaml')
-
         Returns:
             String path to the schema file, or None if not found
         """
@@ -77,15 +73,12 @@ class DatasetValidator:
     ) -> bool:
         """
         Validate a dataset in JSON format against dataset.yaml schema.
-
         Args:
             dataset: Dataset dictionary with metadata and rows
             dataset_name: Name of the dataset (for error messages)
             raise_on_error: If True, raise exception on validation failure
-
         Returns:
             bool: True if validation passes or is skipped
-
         Raises:
             SchemaValidationError: If validation fails and raise_on_error is True
         """
@@ -118,20 +111,16 @@ class DatasetValidator:
     ) -> bool:
         """
         Validate a dataset in NDJSON format against dataset-ndjson.yaml schema.
-
         For NDJSON, we validate the metadata structure separately from row data
         since the format stores them on different lines.
-
         Args:
             metadata: Dataset metadata dictionary
             rows: List of row data
             dataset_name: Name of the dataset (for error messages)
             raise_on_error: If True, raise exception on validation failure
             batch_size: Number of rows to validate at a time
-
         Returns:
             bool: True if validation passes or is skipped
-
         Raises:
             SchemaValidationError: If validation fails and raise_on_error is True
         """
@@ -184,17 +173,14 @@ class DatasetValidator:
     ) -> bool:
         """
         Perform LinkML validation on data.
-
         Args:
             data: Data to validate
             schema_path: Path to the LinkML YAML schema file
             target_class: Target class name in the schema
             dataset_name: Name of the dataset (for error messages)
             raise_on_error: If True, raise exception on validation failure
-
         Returns:
             bool: True if validation passes
-
         Raises:
             SchemaValidationError: If validation fails and raise_on_error is True
         """
@@ -244,17 +230,14 @@ class DatasetValidator:
     ) -> bool:
         """
         Validate NDJSON row data in batches.
-
         Args:
             rows: List of row data (each row is a list of values)
             schema_path: Path to the LinkML YAML schema file
             dataset_name: Name of the dataset (for error messages)
             raise_on_error: If True, raise exception on validation failure
             batch_size: Number of rows to validate at a time
-
         Returns:
             bool: True if validation passes
-
         Raises:
             SchemaValidationError: If validation fails and raise_on_error is True
         """
@@ -322,7 +305,6 @@ def validate_dataset(
 ) -> bool:
     """
     Convenience function to validate a dataset.
-
     Args:
         metadata: Dataset metadata dictionary
         rows: List of row data
@@ -330,10 +312,8 @@ def validate_dataset(
         format_name: Format to validate ('json' or 'ndjson')
         skip_validation: If True, skip validation
         raise_on_error: If True, raise exception on validation failure
-
     Returns:
         bool: True if validation passes or is skipped
-
     Raises:
         SchemaValidationError: If validation fails and raise_on_error is True
     """
