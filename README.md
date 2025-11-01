@@ -530,7 +530,7 @@ MIT License - see LICENSE.md for details
 
 ## Changelog
 
-### Version 0.9.0 (Current)
+### Version 0.9.1 (Current)
 - Refactored to object-oriented design
 - Added NDJSON format support (now default)
 - Replaced XSLT with Python code
