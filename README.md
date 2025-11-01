@@ -40,6 +40,7 @@ pip install -e .
 - Python 3.7+
 - pandas
 - pyreadstat
+- linkml
 - jsonschema
 
 ## Quick Start
@@ -339,27 +340,6 @@ for sas_file in sas_files:
     input_path = os.path.join(sas_dir, sas_file)
     output_path = converter.convert_dataset(input_path, 'output')
     print(f"Converted: {output_path}")
-```
-
-### Custom Metadata Handling
-
-```python
-from dsjconvert import XPTConverter, MetadataExtractor
-
-# Create custom metadata extractor
-extractor = MetadataExtractor('define.xml')
-
-# Or extract metadata manually
-metadata = extractor.extract_metadata(
-    dataset_name='DM',
-    num_rows=100
-)
-
-# Customize metadata if needed
-metadata['originator'] = 'My Organization'
-
-# Use in conversion
-converter = XPTConverter(metadata_extractor=extractor)
 ```
 
 ## Architecture

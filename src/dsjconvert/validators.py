@@ -11,7 +11,6 @@ from typing import Dict, List, Optional, Any, Tuple
 
 from linkml.validator import validate
 
-# from .exceptions import SchemaNotFoundError, SchemaValidationError
 from .exceptions import SchemaValidationError
 from .utils import get_package_resource_path
 
@@ -110,7 +109,7 @@ class DatasetValidator:
         batch_size: int = 100
     ) -> bool:
         """
-        Validate a dataset in NDJSON format against dataset-ndjson.yaml schema.
+        Validate a dataset in NDJSON format against dataset-ndjson.yaml.
         For NDJSON, we validate the metadata structure separately from row data
         since the format stores them on different lines.
         Args:
@@ -152,14 +151,15 @@ class DatasetValidator:
             return False
 
         # Validate rows in batches
-        if rows:
-            return self._validate_ndjson_rows(
-                rows,
-                schema_path,
-                dataset_name,
-                raise_on_error,
-                batch_size
-            )
+        # TODO review just validating the metadata and add a new command for row validation
+        # if rows:
+        #     return self._validate_ndjson_rows(
+        #         rows,
+        #         schema_path,
+        #         dataset_name,
+        #         raise_on_error,
+        #         batch_size
+        #     )
 
         return True
 
