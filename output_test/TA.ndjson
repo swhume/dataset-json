@@ -1,0 +1,12 @@
+{"datasetJSONCreationDateTime": "2025-10-13T16:15:27", "datasetJSONVersion": "1.1.0", "itemGroupOID": "{TA", "records": 11, "name": "TA", "label": "TA", "columns": [{"itemOID": "IT.STUDYID", "name": "STUDYID", "label": "Study Identifier", "dataType": "string"}, {"itemOID": "IT.DOMAIN", "name": "DOMAIN", "label": "Domain Abbreviation", "dataType": "string"}, {"itemOID": "IT.ARMCD", "name": "ARMCD", "label": "Planned Arm Code", "dataType": "string"}, {"itemOID": "IT.ARM", "name": "ARM", "label": "Description of Planned Arm", "dataType": "string"}, {"itemOID": "IT.TAETORD", "name": "TAETORD", "label": "Planned Order of Element within Arm", "dataType": "double"}, {"itemOID": "IT.ETCD", "name": "ETCD", "label": "Element Code", "dataType": "string"}, {"itemOID": "IT.ELEMENT", "name": "ELEMENT", "label": "Description of Element", "dataType": "string"}, {"itemOID": "IT.TABRANCH", "name": "TABRANCH", "label": "Branch", "dataType": "string"}, {"itemOID": "IT.TATRANS", "name": "TATRANS", "label": "Transition Rule", "dataType": "string"}, {"itemOID": "IT.EPOCH", "name": "EPOCH", "label": "Epoch", "dataType": "string"}]}
+["CDISCPILOT01", "TA", "Pbo", "Placebo", 1.0, "SCRN", "Screen", "Randomized to Placebo", "", "SCREENING"]
+["CDISCPILOT01", "TA", "Pbo", "Placebo", 2.0, "PBO", "Placebo", "", "", "TREATMENT"]
+["CDISCPILOT01", "TA", "Pbo", "Placebo", 3.0, "FOLO", "Follow_up", "", "", "FOLLOW-UP"]
+["CDISCPILOT01", "TA", "Xan_Hi", "Xanomeline High Dose", 1.0, "SCRN", "Screen", "Randomized to High Dose", "", "SCREENING"]
+["CDISCPILOT01", "TA", "Xan_Hi", "Xanomeline High Dose", 2.0, "HIS", "High_Start", "", "", "TREATMENT"]
+["CDISCPILOT01", "TA", "Xan_Hi", "Xanomeline High Dose", 3.0, "HIM", "High_Middle", "", "", "TREATMENT"]
+["CDISCPILOT01", "TA", "Xan_Hi", "Xanomeline High Dose", 4.0, "HIE", "High_End", "", "", "TREATMENT"]
+["CDISCPILOT01", "TA", "Xan_Hi", "Xanomeline High Dose", 5.0, "FOLO", "Follow_up", "", "", "FOLLOW-UP"]
+["CDISCPILOT01", "TA", "Xan_Lo", "Xanomeline Low Dose", 1.0, "SCRN", "Screen", "Randomized to Low Dose", "", "SCREENING"]
+["CDISCPILOT01", "TA", "Xan_Lo", "Xanomeline Low Dose", 2.0, "LO", "Low", "", "", "TREATMENT"]
+["CDISCPILOT01", "TA", "Xan_Lo", "Xanomeline Low Dose", 3.0, "FOLO", "Follow_up", "", "", "FOLLOW-UP"]
